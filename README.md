@@ -16,8 +16,8 @@
   being duplicated as tuples.
 - **Memory mode**: an in-memory evaluator for tests and local development
   with no OpenFGA server. CI checks it against a real OpenFGA server.
-- **Model deployment** of your `.fga` file when the server starts, for servers
-  that accept DSL bodies.
+- **Optional model deployment** of your `.fga` file when the server starts,
+  for servers that accept DSL bodies.
 
 The module has no knowledge of your model's types. Your application supplies
 the model, tuples and authentication.
@@ -194,7 +194,7 @@ causes an error, so a mistake surfaces instead of changing decisions silently.
 | `headers` | `OPENFGA_HEADERS` | `{}` | Static headers sent with every request, such as an API token for a managed service. |
 | `cacheMaxEntries` | — | `10000` | Maximum cached decisions per server process. |
 | `cacheTtlMs` | — | `30000` | Lifetime of a cached decision. |
-| `autoDeployModel` | — | `true` | Deploy `modelFile` when the server starts. See [Model deployment](#model-deployment). |
+| `autoDeployModel` | — | `false` | Deploy `modelFile` when the server starts. See [Model deployment](#model-deployment). |
 | `modelFile` | `OPENFGA_MODEL_FILE` | `openfga/model.fga` | DSL model path, relative to the server's working directory. |
 | `userIdPath` | — | `user.id` | Path to the user id on `event.context`. |
 | `contextualTuplesKey` | — | `openfgaContextualTuples` | Key on `event.context` holding per-request contextual tuples. |
@@ -219,18 +219,21 @@ value. All configuration is server-only and never sent to the browser.
 
 ## Model deployment
 
-With `autoDeployModel` enabled, a Nitro startup plugin reads `modelFile` and
-sends it to `POST /stores/:storeId/authorization-models` with
-`Content-Type: application/x-openfga-dsl`. It then uses the returned model id.
-It sends an `Idempotency-Key` derived from the file's contents, so servers
-that honor the key do not create a new model on every restart.
-
-**The upstream OpenFGA server accepts only JSON models.** With it, set
-`autoDeployModel: false` and deploy with the [`fga` CLI](https://github.com/openfga/cli):
+Deploy your model with the [`fga` CLI](https://github.com/openfga/cli), as
+with any OpenFGA application:
 
 ```bash
 fga model write --store-id "$OPENFGA_STORE_ID" --file openfga/model.fga
 ```
+
+If your server accepts DSL bodies on
+`POST /stores/:storeId/authorization-models` with
+`Content-Type: application/x-openfga-dsl`, the module can deploy for you
+instead. Set `autoDeployModel: true`, and a Nitro startup plugin will read
+`modelFile`, send it, and use the returned model id. It sends an
+`Idempotency-Key` derived from the file's contents, so servers that honor the
+key do not create a new model on every restart. **The upstream OpenFGA server
+accepts only JSON models**, which is why this is off by default.
 
 The plugin reads `apiUrl`, `storeId` and `modelId` from env vars or
 `nuxt.config`, like the server helpers. It skips deployment when a model id is

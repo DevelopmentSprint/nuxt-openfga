@@ -28,9 +28,15 @@ Use the `throughline` skill for kickoff, implementation, review and closeout.
 Beads (`bd --sandbox`) is the tracker; branches are
 `feature/<bead_id>_<short_name>` in worktrees under `.worktrees/`.
 
+Branching is git-flow. `develop` is the integration branch and the default
+branch: feature branches start from it and merge back into it. `main` only
+receives `release/*` and `hotfix/*` merges, and `main` is merged back into
+`develop` after every release.
+
 - Push, publish, tag or release only with the maintainer's explicit approval.
   Completing work does not authorize any of them.
-- Merge to `main` only after the maintainer accepts the result.
+- Merge into `develop` only after the maintainer accepts the result. Merging
+  `develop` into `main` is a release and needs its own approval.
 - Commits follow Conventional Commits, include the bead id, and end with the
   co-author line.
 

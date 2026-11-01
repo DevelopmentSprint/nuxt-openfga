@@ -8,8 +8,8 @@
  * SDK wrapper picks it up on its next call.
  *
  * The endpoint must accept DSL bodies. The upstream OpenFGA server accepts
- * only JSON models; with it, set `openfga.autoDeployModel: false` and deploy
- * the model with the `fga` CLI instead.
+ * only JSON models, which is why `openfga.autoDeployModel` defaults to false;
+ * with it, deploy the model with the `fga` CLI instead.
  *
  * Failure modes (server unreachable, store not found, malformed DSL,
  * etc.) are logged but do not crash the dev server — the calling

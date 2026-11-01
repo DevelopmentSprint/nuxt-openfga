@@ -30,11 +30,11 @@ export interface ModuleOptions {
   cacheTtlMs?: number
   /**
    * Deploy the project's DSL model to the configured store when the Nitro
-   * server starts. The server must accept DSL bodies on
+   * server starts. Only enable this for a server that accepts DSL bodies on
    * `POST /stores/:storeId/authorization-models` with
    * `Content-Type: application/x-openfga-dsl`. The upstream OpenFGA server
-   * accepts only JSON, so disable this and deploy with the `fga` CLI when
-   * using it. Default `true`.
+   * accepts only JSON; with it, deploy with the `fga` CLI instead. Default
+   * `false`.
    */
   autoDeployModel?: boolean
   /**
@@ -100,7 +100,7 @@ const module: NuxtModule<ModuleOptions> = defineNuxtModule<ModuleOptions>({
   defaults: {
     cacheMaxEntries: 10_000,
     cacheTtlMs: 30_000,
-    autoDeployModel: true,
+    autoDeployModel: false,
     modelFile: 'openfga/model.fga',
     userIdPath: 'user.id',
     contextualTuplesKey: 'openfgaContextualTuples',

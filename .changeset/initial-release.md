@@ -8,4 +8,4 @@ Initial public release. The module was extracted from a production Nuxt applicat
 - `requireRelation` route guards and the `/api/_authz/check` endpoint behind `<Can>` and `useCan`.
 - `userIdPath` and `contextualTuplesKey` options to fit any authentication layer.
 - Memory mode with an in-memory evaluator, checked against OpenFGA in CI, and a `/memory` entry point for unit tests.
-- Startup deployment of a DSL model for servers that accept DSL bodies.
+- Opt-in startup deployment of a DSL model (`autoDeployModel`) for servers that accept DSL bodies.

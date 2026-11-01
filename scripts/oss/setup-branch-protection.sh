@@ -53,7 +53,7 @@ PAYLOAD="$(cat <<'JSON'
     "required_approving_review_count": 1
   },
   "restrictions": null,
-  "required_linear_history": true,
+  "required_linear_history": false,
   "allow_force_pushes": false,
   "allow_deletions": false,
   "block_creations": false,

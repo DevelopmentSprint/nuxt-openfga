@@ -5,7 +5,6 @@ export default defineNuxtConfig({
   compatibilityDate: '2025-07-15',
   devtools: { enabled: false },
   openfga: {
-    autoDeployModel: false,
     userIdPath: 'auth.userId',
     contextualTuplesKey: 'roleTuples',
   },

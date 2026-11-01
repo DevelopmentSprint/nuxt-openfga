@@ -56,6 +56,15 @@ pnpm build
 pnpm test:e2e
 ```
 
+## Branches
+
+This repository uses git-flow. `develop` is the integration branch and the
+default branch; `main` holds released versions only.
+
+- Branch from `develop` (`feature/<short-name>` or `fix/<short-name>`) and
+  open your pull request against `develop`.
+- Releases are cut by maintainers from `develop` to `main`.
+
 ## Pull requests
 
 - Keep each pull request to one change, and explain why it is needed.
