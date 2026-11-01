@@ -1,0 +1,45 @@
+node_modules
+dist
+.nuxt
+.output
+.data
+coverage
+*.tgz
+.env
+**/.nuxt
+**/.output
+**/.data
+
+# Local Agent Settings
+.claude
+.codex
+.mcp.json
+# OS/editor noise
+.DS_Store
+.vscode/
+
+
+# Dolt database files (added by bd init)
+.dolt/
+*.db
+
+# Beads / Dolt files (added by bd init)
+.beads-credential-key
+# Isolated development checkouts and local npm credentials
+.worktrees/
+.npmrc
+
+# Private tracker state stays local, including nested copies.
+.beads/
+.beadroad/
+.dolt/
+dolt/
+doltdb/
+embeddeddolt/
+proxieddb/
+.beads-credential-key
+.beads.gate.lock
+
+# Beads / Dolt files (added by bd init)
+.beads/proxieddb/
+*.gate.lock*
