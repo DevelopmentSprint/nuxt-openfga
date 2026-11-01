@@ -24,19 +24,38 @@ an authenticated maintainer.
 
 ## 2) Branch protection
 
-After the first CI run has registered the check names, protect both
-long-lived branches:
+Rulesets need a public repository on the free plan, so run this right after
+the repository becomes public, and after the first CI run has registered the
+check names:
 
 ```bash
 gh auth login
-scripts/oss/setup-branch-protection.sh DevelopmentSprint/nuxt-openfga main
-scripts/oss/setup-branch-protection.sh DevelopmentSprint/nuxt-openfga develop
+scripts/oss/setup-branch-protection.sh DevelopmentSprint/nuxt-openfga
 ```
 
-The script requires the `validate`, `parity` and `dependency-review` checks,
-one approving review with stale-review dismissal, and conversation
-resolution. It forbids force pushes and deletion. It does not require linear
-history, because git-flow's release and back-merges are merge commits.
+It creates two rulesets on `main` and `develop`, and re-running it updates
+them in place:
+
+- **History**, with no bypass for anyone: no force pushes, no branch
+  deletion.
+- **Review gate**: changes arrive by pull request with one approval, the
+  required `validate`, `parity` and `dependency-review` checks, and resolved
+  conversations. Stale approvals are dismissed on new pushes.
+
+**Maintainer carve-out.** Organization owners may bypass the review gate,
+because GitHub does not allow approving your own pull request. While there is
+a single maintainer, that maintainer can still merge locally and push, or
+merge a pull request without a second reviewer. The bypass is tied to the
+organization-owner role: contributors and ordinary members can never approve
+their own changes onto these branches. Linear history is not required,
+because git-flow's release and back-merges are merge commits.
+
+The Changesets version PR is opened with `GITHUB_TOKEN`, which does not
+trigger workflows, so its required checks never report. Merge it with the
+owner bypass after reviewing the version bump and changelog.
+
+When a second maintainer joins, consider removing the bypass, or moving it to
+`pull_request` mode so even owners go through a pull request.
 
 ## 3) First npm release
 
