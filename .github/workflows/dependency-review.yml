@@ -1,0 +1,35 @@
+name: dependency-review
+
+on:
+  pull_request:
+    branches:
+      - main
+      - develop
+
+permissions:
+  contents: read
+
+jobs:
+  dependency-review:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
+      - name: Detect dependency graph status
+        id: depgraph
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          status="$(gh api repos/${{ github.repository }} --jq '.security_and_analysis.dependency_graph.status // "disabled"' 2>/dev/null || echo "disabled")"
+          echo "status=${status}" >> "$GITHUB_OUTPUT"
+      - name: Dependency Review
+        if: ${{ steps.depgraph.outputs.status == 'enabled' }}
+        uses: actions/dependency-review-action@a1d282b36b6f3519aa1f3fc636f609c47dddb294 # v5.0.0
+      - name: Dependency Review skipped
+        if: ${{ steps.depgraph.outputs.status != 'enabled' }}
+        run: |
+          echo "::notice::Dependency graph is not enabled for this repository."
+          echo "::notice::Enable it at: https://github.com/${{ github.repository }}/settings/security_analysis"

@@ -1,0 +1,3 @@
+bash scripts/check-private-tracker.sh --pre-push "$1"
+pnpm secrets:scan:full
+pnpm test

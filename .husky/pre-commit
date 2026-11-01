@@ -1,0 +1,4 @@
+bash scripts/check-private-tracker.sh
+pnpm secrets:scan
+pnpm lint
+pnpm typecheck

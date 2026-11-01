@@ -1,0 +1,95 @@
+name: Publish npm release
+
+on:
+  release:
+    types: [published]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: npm-publish
+  cancel-in-progress: false
+
+jobs:
+  prepare:
+    if: github.repository == 'DevelopmentSprint/nuxt-openfga' && !github.event.release.prerelease
+    runs-on: ubuntu-latest
+    outputs:
+      sha256: ${{ steps.pack.outputs.sha256 }}
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
+        with:
+          node-version: 24
+          package-manager-cache: false
+      - name: Verify release identity and source
+        env:
+          RELEASE_TAG: ${{ github.event.release.tag_name }}
+        run: |
+          git fetch --no-tags origin +refs/heads/main:refs/remotes/origin/main
+          node scripts/release/verify.mjs source
+          bash scripts/check-private-tracker.sh
+      - name: Install
+        run: pnpm install --frozen-lockfile
+      - name: Validate and build
+        run: |
+          pnpm lint
+          pnpm typecheck
+          pnpm test
+          pnpm build
+      - name: Install pinned package scanner
+        working-directory: ${{ runner.temp }}
+        run: |
+          curl --fail --silent --show-error --location --output gitleaks.tar.gz https://github.com/gitleaks/gitleaks/releases/download/v8.30.1/gitleaks_8.30.1_linux_x64.tar.gz
+          echo "551f6fc83ea457d62a0d98237cbad105af8d557003051f41f3e7ca7b3f2470eb  gitleaks.tar.gz" | sha256sum --check --strict
+          tar -xzf gitleaks.tar.gz gitleaks
+      - name: Pack and verify public contents
+        id: pack
+        env:
+          RELEASE_TAG: ${{ github.event.release.tag_name }}
+        run: |
+          mkdir release
+          npm pack --ignore-scripts --json --pack-destination release > release/manifest.json
+          node scripts/release/verify.mjs archive
+          scan_dir=$(mktemp -d "$RUNNER_TEMP/npm-scan.XXXXXX")
+          tar -xzf release/package.tgz -C "$scan_dir"
+          "$RUNNER_TEMP/gitleaks" dir "$scan_dir" --redact --no-banner --ignore-gitleaks-allow
+          echo "sha256=$(sha256sum release/package.tgz | cut -d ' ' -f 1)" >> "$GITHUB_OUTPUT"
+      - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+        with:
+          name: npm-package
+          path: release/package.tgz
+          if-no-files-found: error
+          retention-days: 1
+
+  publish:
+    needs: prepare
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
+        with:
+          node-version: 24
+          registry-url: https://registry.npmjs.org/
+          package-manager-cache: false
+      - uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
+        with:
+          name: npm-package
+          path: release
+      - name: Verify artifact integrity
+        working-directory: release
+        env:
+          EXPECTED_SHA256: ${{ needs.prepare.outputs.sha256 }}
+        run: |
+          printf '%s  package.tgz\n' "$EXPECTED_SHA256" | sha256sum --check --strict
+      - name: Publish with npm trusted publishing
+        working-directory: release
+        run: npm publish ./package.tgz --access public --provenance --ignore-scripts --tag latest

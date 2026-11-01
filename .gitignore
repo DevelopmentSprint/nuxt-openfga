@@ -1,3 +1,4 @@
+# Dependencies and build output
 node_modules
 dist
 .nuxt
@@ -5,31 +6,35 @@ dist
 .data
 coverage
 *.tgz
-.env
-**/.nuxt
-**/.output
-**/.data
+release/
 
-# Local Agent Settings
+# Environment files hold credentials (OPENFGA_HEADERS, store ids, tokens).
+# Patterns without a slash match at every depth. Only reviewed example files
+# that carry placeholder values may be committed.
+.env
+.env.*
+!.env.example
+!.env.*.example
+*.pem
+*.key
+
+# Local npm credentials
+.npmrc
+
+# Local agent settings
 .claude
 .codex
 .mcp.json
-# OS/editor noise
+
+# OS and editor noise
 .DS_Store
 .vscode/
 
-
-# Dolt database files (added by bd init)
-.dolt/
-*.db
-
-# Beads / Dolt files (added by bd init)
-.beads-credential-key
-# Isolated development checkouts and local npm credentials
+# Isolated development checkouts
 .worktrees/
-.npmrc
 
-# Private tracker state stays local, including nested copies.
+# Private tracker and agent-memory state stays local, including nested copies:
+# Beads, BeadRoad, Dolt and CASS procedural memory.
 .beads/
 .beadroad/
 .dolt/
@@ -37,9 +42,7 @@ dolt/
 doltdb/
 embeddeddolt/
 proxieddb/
+.cass/
+*.db
 .beads-credential-key
-.beads.gate.lock
-
-# Beads / Dolt files (added by bd init)
-.beads/proxieddb/
 *.gate.lock*
