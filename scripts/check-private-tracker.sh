@@ -11,7 +11,7 @@ trap 'rm -f "$paths_file" "$commits_file"' EXIT
 
 private_path() {
   case "/$1/" in
-    */.beads/*|*/.beadroad/*|*/.dolt/*|*/dolt/*|*/doltdb/*|*/embeddeddolt/*|*/proxieddb/*|*/.beads-credential-key/*|*/.beads.gate.lock/*) return 0 ;;
+    */.beads/*|*/.beadroad/*|*/.dolt/*|*/dolt/*|*/doltdb/*|*/embeddeddolt/*|*/proxieddb/*|*/.cass/*|*/.beads-credential-key/*|*/.beads.gate.lock/*) return 0 ;;
     *) return 1 ;;
   esac
 }

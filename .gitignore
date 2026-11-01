@@ -33,7 +33,8 @@ release/
 # Isolated development checkouts
 .worktrees/
 
-# Private tracker state stays local, including nested copies.
+# Private tracker and agent-memory state stays local, including nested copies:
+# Beads, BeadRoad, Dolt and CASS procedural memory.
 .beads/
 .beadroad/
 .dolt/
@@ -41,6 +42,7 @@ dolt/
 doltdb/
 embeddeddolt/
 proxieddb/
+.cass/
 *.db
 .beads-credential-key
 *.gate.lock*

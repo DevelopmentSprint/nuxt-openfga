@@ -21,7 +21,7 @@ export function verifyIdentity(pkg, tag) {
 export function verifyFiles(files) {
   const required = new Set(['package.json', 'README.md', 'LICENSE', 'dist/module.mjs', 'dist/module.d.ts', 'dist/types.mjs', 'dist/types.d.ts'])
   const seen = new Set()
-  const privateNames = new Set(['.beads', '.beadroad', '.dolt', 'dolt', 'doltdb', 'embeddeddolt', 'proxieddb', '.npmrc', '.beads-credential-key', '.beads.gate.lock'])
+  const privateNames = new Set(['.beads', '.beadroad', '.dolt', 'dolt', 'doltdb', 'embeddeddolt', 'proxieddb', '.cass', '.npmrc', '.beads-credential-key', '.beads.gate.lock'])
   for (const file of files) {
     assert.ok(typeof file === 'string' && file.length > 0 && !file.includes('\\'), 'Invalid package path')
     const parts = file.split('/')
