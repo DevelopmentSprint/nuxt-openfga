@@ -10,6 +10,9 @@ on:
 
 jobs:
   analyze:
+    # Code scanning uploads need a public repository on the free plan. This
+    # turns on by itself when the repository is made public.
+    if: ${{ !github.event.repository.private }}
     runs-on: ubuntu-latest
     permissions:
       actions: read
