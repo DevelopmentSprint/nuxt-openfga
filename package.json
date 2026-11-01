@@ -1,0 +1,106 @@
+{
+  "name": "@developmentsprint/nuxt-openfga",
+  "version": "0.0.0",
+  "description": "OpenFGA authorization for Nuxt: cached server helpers, h3 route guards, a <Can> component, and an in-memory evaluator for tests.",
+  "private": false,
+  "type": "module",
+  "license": "MIT",
+  "author": "Todd Orr",
+  "keywords": [
+    "nuxt",
+    "nuxt-module",
+    "openfga",
+    "authorization",
+    "fga",
+    "rebac",
+    "zanzibar",
+    "permissions"
+  ],
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org/",
+    "provenance": true
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/DevelopmentSprint/nuxt-openfga.git"
+  },
+  "homepage": "https://github.com/DevelopmentSprint/nuxt-openfga#readme",
+  "bugs": {
+    "url": "https://github.com/DevelopmentSprint/nuxt-openfga/issues"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "main": "./dist/module.mjs",
+  "types": "./dist/module.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/module.d.ts",
+      "import": "./dist/module.mjs"
+    },
+    "./types": {
+      "types": "./dist/types.d.ts",
+      "import": "./dist/types.mjs"
+    },
+    "./memory": {
+      "types": "./dist/runtime/server/utils/memory-store.d.ts",
+      "import": "./dist/runtime/server/utils/memory-store.mjs"
+    },
+    "./runtime/*": "./dist/runtime/*"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "dev": "nuxi dev playground",
+    "dev:prepare": "nuxi prepare playground",
+    "lint": "eslint .",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "test": "vitest run",
+    "test:coverage": "vitest run --coverage",
+    "build": "unbuild",
+    "prepack": "pnpm build",
+    "changeset": "changeset",
+    "version-packages": "changeset version",
+    "release": "changeset publish",
+    "prepare": "husky",
+    "secrets:scan": "gitleaks-secret-scanner --diff-mode staged --redact --no-banner",
+    "secrets:scan:full": "gitleaks-secret-scanner --diff-mode history --redact --no-banner",
+    "test:e2e": "vitest run --config vitest.e2e.config.ts"
+  },
+  "dependencies": {
+    "@nuxt/kit": "^4.0.0",
+    "@openfga/sdk": "^0.9.4",
+    "defu": "^6.1.7"
+  },
+  "peerDependencies": {
+    "h3": "^1.15.0",
+    "nuxt": "^4.0.0"
+  },
+  "devDependencies": {
+    "@changesets/cli": "^2.31.0",
+    "@eslint/js": "^10.0.1",
+    "@nuxt/schema": "^4.6.3",
+    "@nuxt/test-utils": "^4.3.4",
+    "@types/node": "^25.6.0",
+    "@typescript-eslint/parser": "^8.59.4",
+    "@vitejs/plugin-vue": "^6.0.7",
+    "@vitest/coverage-v8": "^4.1.12",
+    "@vue/test-utils": "^2.4.10",
+    "eslint": "^10.4.0",
+    "gitleaks-secret-scanner": "^2.1.1",
+    "h3": "^1.15.11",
+    "happy-dom": "^20.9.0",
+    "husky": "^9.1.7",
+    "nuxt": "^4.4.6",
+    "typescript": "^5.9.3",
+    "unbuild": "^3.6.1",
+    "vitest": "^4.1.12",
+    "vue": "^3.5.34",
+    "vue-tsc": "^3.3.0"
+  },
+  "packageManager": "pnpm@10.26.1"
+}

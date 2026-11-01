@@ -1,0 +1,100 @@
+name: ci
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
+        with:
+          persist-credentials: false
+      - name: Reject private tracker state
+        run: bash scripts/check-private-tracker.sh
+      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: pnpm-lock.yaml
+      - name: Install
+        run: pnpm install --frozen-lockfile
+      - name: Lint
+        run: pnpm lint
+      - name: Typecheck
+        run: pnpm typecheck
+      - name: Test (with coverage)
+        run: pnpm test:coverage
+      - name: Build
+        run: pnpm build
+      - name: End-to-end
+        run: pnpm test:e2e
+      - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+        with:
+          name: coverage
+          path: coverage/lcov.info
+          if-no-files-found: error
+          retention-days: 1
+
+  # Evaluates the same model and tuples with the in-memory evaluator and a real
+  # OpenFGA server, and fails if they disagree.
+  parity:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: pnpm-lock.yaml
+      - name: Install
+        run: pnpm install --frozen-lockfile
+      - name: Start OpenFGA
+        # Started with `docker run` because service containers cannot pass the `run` command.
+        run: docker run -d --name openfga -p 8080:8080 openfga/openfga@sha256:b852071314f1fda1194d341a6ebac0a4f619b3cd87a6626d2ccc7048af4ec671 run # v1.22.1
+      - name: Wait for OpenFGA
+        run: |
+          for _ in $(seq 1 30); do
+            curl -sf http://localhost:8080/stores >/dev/null && exit 0
+            sleep 1
+          done
+          echo "::error::OpenFGA did not become ready" && exit 1
+      - name: Parity
+        env:
+          OPENFGA_API_URL: http://localhost:8080
+          OPENFGA_REQUIRE_SERVER: '1'
+        run: pnpm vitest run test/integration
+
+  # Only this job receives an OIDC token, and it runs no project code.
+  coverage:
+    needs: validate
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
+        with:
+          persist-credentials: false
+      - uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
+        with:
+          name: coverage
+          path: coverage
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f # v6.0.2
+        with:
+          files: coverage/lcov.info
+          disable_search: true
+          fail_ci_if_error: false
+          # OIDC on pushes to main; tokenless uploads for public PRs, including forks.
+          use_oidc: ${{ github.event_name == 'push' }}
