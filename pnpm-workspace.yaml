@@ -4,3 +4,13 @@ packages:
 onlyBuiltDependencies:
   - better-sqlite3
   - gitleaks-secret-scanner
+
+# Security floors for transitive dependencies. Each override lifts a version
+# that a dependency pins or caps below its patched release.
+overrides:
+  # @openfga/sdk pins axios exactly (0.9.7 -> 1.19.0); 1.20.0 fixes the open
+  # axios advisories. Consumers need the same override (see README).
+  axios: ^1.20.0
+  # gitleaks-secret-scanner (dev only) caps tar at 6.x and toml at 3.x.
+  tar: ^7.5.18
+  toml: ^5.0.1

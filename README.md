@@ -34,6 +34,19 @@ the model, tuples and authentication.
 pnpm add @developmentsprint/nuxt-openfga
 ```
 
+`@openfga/sdk` pins an exact axios version that has open security advisories
+(`@openfga/sdk@0.9.7` pins `axios@1.19.0`; 1.20.0 fixes them). Until the SDK
+updates it, lift it in your app. The module's tests pass against axios 1.21.
+
+```yaml
+# pnpm-workspace.yaml
+overrides:
+  axios: ^1.20.0
+```
+
+With npm, use `"overrides": { "axios": "^1.20.0" }` in `package.json`; with
+Yarn, `"resolutions"`.
+
 ```ts
 // nuxt.config.ts
 export default defineNuxtConfig({
