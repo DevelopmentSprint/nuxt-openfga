@@ -6,6 +6,8 @@
 
 [OpenFGA](https://openfga.dev) authorization for [Nuxt](https://nuxt.com).
 
+**Documentation: <https://developmentsprint.github.io/nuxt-openfga/>**
+
 - **Server helpers** for checks, writes and `listObjects`, auto-imported into
   Nitro, with a per-process decision cache.
 - **Route guards** (`requireRelation`) that return 401, 400 or 403 before your
