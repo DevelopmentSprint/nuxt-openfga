@@ -71,13 +71,20 @@ exists, so the first version is published by hand.
    ```bash
    pnpm install --frozen-lockfile
    pnpm lint && pnpm typecheck && pnpm test && pnpm build
-   npm publish --access public
+   npm publish --access public --provenance=false
    ```
 
    This needs an npm account with publish rights in the `developmentsprint`
-   organization. Provenance cannot be attached to a local publish.
+   organization. `publishConfig.provenance` is `true` for CI releases, and a
+   local publish cannot generate provenance, so it fails with `Automatic
+   provenance generation not supported for provider: null` unless the flag
+   overrides it. Command-line flags take precedence over `publishConfig`.
 3. Tag the commit `vX.Y.Z` and create a matching GitHub release, so the history
-   lines up with later automated releases.
+   lines up with later automated releases. Publishing that release runs the
+   publish workflow, which stops at its last step with `You cannot publish
+   over the previously published versions`. npm raises that error on the
+   client after the OIDC exchange, and a failed exchange is not fatal, so the
+   run does not prove trusted publishing works; the next release does.
 
 ## 4) npm trusted publisher
 
@@ -88,6 +95,20 @@ under **Publishing access**, add a GitHub Actions trusted publisher:
 - Repository: `nuxt-openfga`
 - Workflow file: `npm-publish.yml`
 - Environment: _(leave blank)_
+
+The CLI does the same, and shows the result:
+
+```bash
+npm trust github @developmentsprint/nuxt-openfga --file npm-publish.yml \
+  --repo DevelopmentSprint/nuxt-openfga --allow-publish --allow-stage-publish
+npm trust list @developmentsprint/nuxt-openfga
+```
+
+Configuring a trusted publisher before the first publish makes npm create a
+`0.0.0-stage` placeholder version. Deprecate it after the real release:
+`npm deprecate @developmentsprint/nuxt-openfga@0.0.0-stage "Placeholder release; use 0.1.0 or later"`.
+Check with `npm trust list` after the first publish, because the entry has
+not always survived it.
 
 Then set **Publishing access** to require two-factor authentication and
 disallow tokens. No npm token belongs in GitHub secrets or workflow files. See

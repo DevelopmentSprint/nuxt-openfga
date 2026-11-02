@@ -73,6 +73,57 @@ describe('POST /api/_authz/check', () => {
     await expect(call(event({ user: { id: 'alice' } }))).rejects.toMatchObject({ statusCode: 400 })
   })
 
+  describe('input limits (OpenFGA CheckRequestTupleKey)', () => {
+    const rejects = async (body: Record<string, unknown>, fields: string[]) => {
+      requestBody = { ...VALID, ...body }
+      await expect(call(event({ user: { id: 'alice' } }))).rejects.toMatchObject({
+        statusCode: 400,
+        data: { invalidFields: fields },
+      })
+      expect(mockCheck).not.toHaveBeenCalled()
+    }
+    const accepts = async (body: Record<string, unknown>) => {
+      requestBody = { ...VALID, ...body }
+      mockCheck.mockResolvedValue({ allowed: false })
+      await expect(call(event({ user: { id: 'alice' } }))).resolves.toEqual({ allowed: false })
+    }
+
+    it('accepts a 50-character relation and rejects 51', async () => {
+      await accepts({ relation: 'r'.repeat(50) })
+      mockCheck.mockReset()
+      await rejects({ relation: 'r'.repeat(51) }, ['relation'])
+    })
+
+    it.each([':', '#', '@', ' ', '\t', '\n'])('rejects %j in relation and objectType', async (ch) => {
+      await rejects({ relation: `can${ch}view`, objectType: `doc${ch}ument` }, ['relation', 'objectType'])
+    })
+
+    it('rejects a 255-character objectType', async () => {
+      await rejects({ objectType: 't'.repeat(255) }, ['objectType'])
+    })
+
+    it('caps objectType:objectId at 256 characters in total', async () => {
+      const type = 'document'
+      await accepts({ objectType: type, objectId: 'x'.repeat(256 - type.length - 1) })
+      mockCheck.mockReset()
+      await rejects({ objectType: type, objectId: 'x'.repeat(256 - type.length) }, ['objectId'])
+    })
+
+    it('does not blame the id for an oversized type', async () => {
+      await rejects({ objectType: 't'.repeat(300), objectId: 'd1' }, ['objectType'])
+    })
+
+    it('rejects ASCII whitespace in objectId but allows colons and Unicode spaces', async () => {
+      await rejects({ objectId: 'a b' }, ['objectId'])
+      await accepts({ objectId: 'org:acme/a\u00a0b' })
+    })
+
+    it('counts code points, not UTF-16 units', async () => {
+      const type = 'document'
+      await accepts({ objectType: type, objectId: '\u{1F600}'.repeat(256 - type.length - 1) })
+    })
+  })
+
   it('includes contextual tuples from the configured key', async () => {
     runtimeOpenfga['contextualTuplesKey'] = 'roleTuples'
     const tuples = [{ user: 'user:alice', relation: 'admin', object: 'org:acme' }]
