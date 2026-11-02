@@ -19,24 +19,43 @@ an authenticated maintainer.
      templates send reporters there)
    - Secret scanning and push protection
 5. In **Settings → Actions → General**, set workflow permissions to
-   **Read repository contents** and allow GitHub Actions to create pull
-   requests. The `changesets` workflow needs this to open version PRs.
+   **Read repository contents** and leave **Allow GitHub Actions to create
+   and approve pull requests** off. The `changesets` workflow opens version
+   PRs with a GitHub App token, not `GITHUB_TOKEN` (section 6).
 
 ## 2) Branch protection
 
-After the first CI run has registered the check names, protect both
-long-lived branches:
+Rulesets need a public repository on the free plan, so run this right after
+the repository becomes public, and after the first CI run has registered the
+check names:
 
 ```bash
 gh auth login
-scripts/oss/setup-branch-protection.sh DevelopmentSprint/nuxt-openfga main
-scripts/oss/setup-branch-protection.sh DevelopmentSprint/nuxt-openfga develop
+scripts/oss/setup-branch-protection.sh DevelopmentSprint/nuxt-openfga
 ```
 
-The script requires the `validate`, `parity` and `dependency-review` checks,
-one approving review with stale-review dismissal, and conversation
-resolution. It forbids force pushes and deletion. It does not require linear
-history, because git-flow's release and back-merges are merge commits.
+It creates two rulesets on `main` and `develop`, and re-running it updates
+them in place:
+
+- **History**, with no bypass for anyone: no force pushes, no branch
+  deletion.
+- **Review gate**: changes arrive by pull request with one approval, the
+  required `validate`, `parity` and `dependency-review` checks, and resolved
+  conversations. Stale approvals are dismissed on new pushes.
+
+**Maintainer carve-out.** Organization owners may bypass the review gate,
+because GitHub does not allow approving your own pull request. While there is
+a single maintainer, that maintainer can still merge locally and push, or
+merge a pull request without a second reviewer. The bypass is tied to the
+organization-owner role: contributors and ordinary members can never approve
+their own changes onto these branches. Linear history is not required,
+because git-flow's release and back-merges are merge commits.
+
+The Changesets version PR is opened with a GitHub App token (section 6), so
+its required checks run like any other pull request's.
+
+When a second maintainer joins, consider removing the bypass, or moving it to
+`pull_request` mode so even owners go through a pull request.
 
 ## 3) First npm release
 
@@ -109,3 +128,46 @@ After the first build on `main`, check that the
 [coverage badge](https://codecov.io/gh/DevelopmentSprint/nuxt-openfga/branch/main/graph/badge.svg)
 shows a percentage. Coverage upload failures do not fail CI, so a green run is
 not proof that the upload worked.
+
+## 6) Changesets version PR App
+
+Version PRs must trigger the required `validate`, `parity` and
+`dependency-review` checks. Pull requests opened or updated with a workflow's
+`GITHUB_TOKEN` do not trigger other workflows, so the `changesets` workflow
+writes the version PR with a short-lived token from the
+`developmentsprint-changesets` GitHub App. The workflow's own `GITHUB_TOKEN`
+stays read-only.
+
+The App is registered once for the organization (organization **Settings** →
+**Developer settings** → **GitHub Apps**): webhook inactive, repository
+permissions **Contents** and **Pull requests** read and write, everything else
+**No access**, installed on **Only select repositories**. Add
+`nuxt-openfga` to that installation.
+
+Credentials use these names, wherever they are stored:
+
+- Variable `CHANGESETS_APP_CLIENT_ID`: the App's Client ID.
+- Secret `CHANGESETS_APP_PRIVATE_KEY`: the full contents of a private key
+  generated on the App page. Delete the downloaded `.pem` after saving it.
+
+Organization secrets and variables do not reach private repositories on the
+free plan. While this repository is private, store both as **repository**
+secrets and variables (**Settings → Secrets and variables → Actions**), using a
+private key generated for this repository alone. Once it is public, add the
+repository to the organization credentials' **Selected repositories**, delete
+the repository-level copies, and delete that key on the App page.
+
+The workflow narrows each token to this repository with contents and
+pull-request write access, and the token is revoked when the job ends. It is
+minted after dependency installation, so install-time lifecycle scripts never
+see it. It is not isolated from later steps: changesets/action writes it to
+`~/.netrc` before running the `version-packages` script, which can read it.
+Keep that script as plain `changeset version`, with no installs, hooks or
+third-party tools. The version commit is created through the GitHub API, so
+it is signed and attributed to the App. Changesets still does not publish or
+create GitHub releases; publishing remains the release flow in section 4.
+
+To rotate the key, generate a new private key on the App page, update the
+secret, confirm the next version PR runs its checks, then delete the old key.
+If the App or its credentials are unavailable, the workflow fails at **Mint
+version PR token** and no version PR is opened.

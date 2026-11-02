@@ -6,6 +6,10 @@ updates:
     target-branch: develop
     schedule:
       interval: weekly
+    # Wait before proposing a new release, so a malicious or broken version
+    # has time to be caught and pulled first.
+    cooldown:
+      default-days: 7
     open-pull-requests-limit: 10
     labels:
       - dependencies
@@ -15,6 +19,10 @@ updates:
     target-branch: develop
     schedule:
       interval: weekly
+    # Wait before proposing a new release, so a malicious or broken version
+    # has time to be caught and pulled first.
+    cooldown:
+      default-days: 7
     open-pull-requests-limit: 10
     labels:
       - dependencies

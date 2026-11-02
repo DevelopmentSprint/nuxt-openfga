@@ -35,6 +35,9 @@ receives `release/*` and `hotfix/*` merges, and `main` is merged back into
 
 - Push, publish, tag or release only with the maintainer's explicit approval.
   Completing work does not authorize any of them.
+- `main` and `develop` are protected by rulesets (`scripts/oss/setup-branch-protection.sh`).
+  Only organization owners bypass the review gate. Never weaken the rulesets
+  or add bypass actors without the maintainer's explicit approval.
 - Merge into `develop` only after the maintainer accepts the result. Merging
   `develop` into `main` is a release and needs its own approval.
 - Commits follow Conventional Commits, include the bead id, and end with the
