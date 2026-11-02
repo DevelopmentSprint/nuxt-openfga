@@ -1,0 +1,8 @@
+# The docs site is its own pnpm root, with its own lockfile, so the theme's
+# dependencies never reach the published module's install, CI or audits.
+packages:
+  - .
+
+# The theme's dependencies are build tools: nothing here runs in the published
+# site, which is static HTML. They are devDependencies so dependency review
+# reports their advisories without treating them as shipped code.
