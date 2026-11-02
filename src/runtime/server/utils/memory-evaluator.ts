@@ -18,6 +18,13 @@
  *     not surface here.
  *   - Recursion depth cap = 32 (see DEFAULT_MAX_DEPTH). Exceeding it throws
  *     rather than answering, so a cut-off branch cannot grant access.
+ *
+ * Within one check or listObjects call, a (subject, relation, object) result
+ * whose evaluation met no cycle is memoized, so diamond-shaped models are not
+ * re-evaluated exponentially often. Results inside a cycle depend on where the
+ * cycle was entered and are always recomputed. Answers and depth-cap throws
+ * match the unmemoized evaluator; test/unit/memory-evaluator-memo.test.ts
+ * compares the two on random models.
  */
 
 export interface ObjectRef { object?: string; relation: string }
@@ -52,13 +59,28 @@ const DEFAULT_MAX_DEPTH = 32
 interface EvalCtx {
   model: AuthorizationModel
   tuples: MemoryTuple[]
-  visited: Set<string>
+  /** Keys on the current resolution path. */
+  path: Set<string>
   depth: number
   maxDepth: number
+  /**
+   * Results of subtrees that met no cycle, with the height of the subtree
+   * (deepest entry depth minus their own). Inside a cycle the answer depends
+   * on where the cycle was entered, so those results are never stored.
+   */
+  memo: Map<string, { value: boolean; height: number }>
+  /** Whether the call being evaluated cut a cycle anywhere below it. */
+  cut: boolean
+  /** Deepest entry depth reached inside the call being evaluated. */
+  deepest: number
 }
 
-function makeCtx(model: AuthorizationModel, tuples: MemoryTuple[], maxDepth = DEFAULT_MAX_DEPTH): EvalCtx {
-  return { model, tuples, visited: new Set(), depth: 0, maxDepth }
+function makeCtx(model: AuthorizationModel, tuples: MemoryTuple[], memo = new Map<string, { value: boolean; height: number }>(), maxDepth = DEFAULT_MAX_DEPTH): EvalCtx {
+  return { model, tuples, path: new Set(), depth: 0, maxDepth, memo, cut: false, deepest: 0 }
+}
+
+function depthExceeded(ctx: EvalCtx, relation: string, object: string): Error {
+  return new Error(`[nuxt-openfga] memory evaluator exceeded resolution depth ${ctx.maxDepth} at ${relation} on ${object}`)
 }
 
 function getRelation(model: AuthorizationModel, type: string, relation: string): Userset | undefined {
@@ -93,26 +115,52 @@ function checkRecursive(
 ): boolean {
   // Returning false here would fail open under `difference` (base but not
   // subtract), so exceeding the cap is an error, as OpenFGA reports one too.
-  if (ctx.depth > ctx.maxDepth) {
-    throw new Error(`[nuxt-openfga] memory evaluator exceeded resolution depth ${ctx.maxDepth} at ${relation} on ${object}`)
-  }
+  if (ctx.depth > ctx.maxDepth) throw depthExceeded(ctx, relation, object)
+  ctx.deepest = Math.max(ctx.deepest, ctx.depth)
 
   const key = `${subject}::${relation}::${object}`
-  if (ctx.visited.has(key)) return false
-  ctx.visited.add(key)
+
+  // A key already on the path is a cycle: cut it, and mark every enclosing
+  // call as path-dependent.
+  if (ctx.path.has(key)) {
+    ctx.cut = true
+    return false
+  }
+
+  // A memoized subtree is replayed with its height, so the depth cap throws
+  // exactly where re-evaluating it would have.
+  const memoized = ctx.memo.get(key)
+  if (memoized) {
+    if (ctx.depth + memoized.height > ctx.maxDepth) throw depthExceeded(ctx, relation, object)
+    ctx.deepest = Math.max(ctx.deepest, ctx.depth + memoized.height)
+    return memoized.value
+  }
+
+  const index = ctx.depth
+  const outerCut = ctx.cut
+  const outerDeepest = ctx.deepest
+  ctx.cut = false
+  ctx.deepest = index
+  ctx.path.add(key)
   ctx.depth += 1
 
+  let value: boolean
   try {
     const { type } = parseObject(object)
     const userset = getRelation(ctx.model, type, relation)
-    if (!userset) return false
-
-    return evaluateUserset(ctx, subject, relation, object, userset)
+    value = userset ? evaluateUserset(ctx, subject, relation, object, userset) : false
   }
   finally {
     ctx.depth -= 1
-    ctx.visited.delete(key)
+    ctx.path.delete(key)
   }
+
+  // A subtree that met no cycle evaluates the same way from any path, so its
+  // result and height can be replayed wherever the key is reached again.
+  if (!ctx.cut) ctx.memo.set(key, { value, height: ctx.deepest - index })
+  ctx.cut = outerCut || ctx.cut
+  ctx.deepest = Math.max(outerDeepest, ctx.deepest)
+  return value
 }
 
 function evaluateUserset(
@@ -202,8 +250,18 @@ export function evaluateCheck(
   objectType: string,
   objectId: string,
 ): boolean {
-  const ctx = makeCtx(model, tuples)
-  return checkRecursive(ctx, subject, relation, `${objectType}:${objectId}`)
+  return checkObject(model, tuples, subject, relation, `${objectType}:${objectId}`, new Map())
+}
+
+function checkObject(
+  model: AuthorizationModel,
+  tuples: MemoryTuple[],
+  subject: string,
+  relation: string,
+  object: string,
+  memo: EvalCtx['memo'],
+): boolean {
+  return checkRecursive(makeCtx(model, tuples, memo), subject, relation, object)
 }
 
 /**
@@ -226,10 +284,11 @@ export function evaluateListObjects(
     }
   }
 
+  // Every candidate is checked for the same subject, so they share one memo.
+  const memo: EvalCtx['memo'] = new Map()
   const result: string[] = []
   for (const candidate of candidates) {
-    const { id } = parseObject(candidate)
-    if (evaluateCheck(model, tuples, subject, relation, objectType, id)) {
+    if (checkObject(model, tuples, subject, relation, candidate, memo)) {
       result.push(candidate)
     }
   }
