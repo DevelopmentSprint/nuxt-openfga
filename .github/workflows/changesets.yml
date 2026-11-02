@@ -8,22 +8,38 @@ on:
 jobs:
   release:
     runs-on: ubuntu-latest
+    # GITHUB_TOKEN stays read-only. The version PR is written with a short-lived
+    # token from the developmentsprint-changesets GitHub App, because events made
+    # with GITHUB_TOKEN never trigger the required pull_request checks.
     permissions:
-      contents: write
-      pull-requests: write
+      contents: read
     steps:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
         with:
           fetch-depth: 0
+          persist-credentials: false
       - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
       - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
         with:
           node-version: 24
-          registry-url: https://registry.npmjs.org/
           cache: pnpm
           cache-dependency-path: pnpm-lock.yaml
       - name: Install
         run: pnpm install --frozen-lockfile
+      # Minted after install so install-time lifecycle scripts never see it.
+      # Scoped to this repository and two permissions; revoked when the job ends.
+      # changesets/action writes it to ~/.netrc before running `version`, so
+      # that command can read it: keep `version-packages` to plain
+      # `changeset version`, with no installs, hooks or third-party tools.
+      - name: Mint version PR token
+        id: app-token
+        uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510 # v3.3.0
+        with:
+          client-id: ${{ vars.CHANGESETS_APP_CLIENT_ID }}
+          private-key: ${{ secrets.CHANGESETS_APP_PRIVATE_KEY }}
+          repositories: ${{ github.event.repository.name }}
+          permission-contents: write
+          permission-pull-requests: write
       - name: Create version PR
         uses: changesets/action@a45c4d594aa4e2c509dc14a9f2b3b67ba3780d0d # v1.9.0
         with:
@@ -31,5 +47,9 @@ jobs:
           commit: "chore(release): version packages"
           version: pnpm version-packages
           createGithubReleases: false
+          # Commits through the GitHub API as the App: signed, and no git push
+          # credential is needed.
+          commitMode: github-api
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # The action reads this env var before its github-token input.
+          GITHUB_TOKEN: ${{ steps.app-token.outputs.token }}
