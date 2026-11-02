@@ -1,5 +1,12 @@
 # @developmentsprint/nuxt-openfga
 
+## 0.1.1
+
+### Patch Changes
+
+- a0a41ff: `/api/_authz/check` now responds 400 to a relation, object type or object id that OpenFGA itself would reject (its length and character limits), so arbitrary input can no longer churn the shared decision cache.
+- 0468d15: The memory evaluator memoizes cycle-free subproblems within a check or `listObjects` call, so models where many paths reach the same relation (diamonds) no longer take exponential time. Answers and depth-cap errors are unchanged.
+
 ## 0.1.0
 
 ### Minor Changes
