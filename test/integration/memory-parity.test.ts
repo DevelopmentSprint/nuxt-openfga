@@ -106,8 +106,35 @@ const MODEL: AuthorizationModel = {
         },
       },
     },
+    {
+      // A diamond: every node reaches the next one through two tuplesets, so
+      // shared subproblems are reached along many paths (memoization).
+      type: 'node',
+      relations: {
+        left: { this: {} },
+        right: { this: {} },
+        viewer: {
+          union: {
+            child: [
+              { this: {} },
+              { tupleToUserset: { tupleset: { object: '', relation: 'left' }, computedUserset: { object: '', relation: 'viewer' } } },
+              { tupleToUserset: { tupleset: { object: '', relation: 'right' }, computedUserset: { object: '', relation: 'viewer' } } },
+            ],
+          },
+        },
+      },
+      metadata: {
+        relations: {
+          left: { directly_related_user_types: [{ type: 'node' }] },
+          right: { directly_related_user_types: [{ type: 'node' }] },
+          viewer: { directly_related_user_types: [{ type: 'user' }] },
+        },
+      },
+    },
   ],
 } as AuthorizationModel
+
+const DIAMOND_LEVELS = 12
 
 const TUPLES: MemoryTuple[] = [
   { user: 'user:alice', relation: 'member', object: 'team:platform-eng' },
@@ -117,6 +144,14 @@ const TUPLES: MemoryTuple[] = [
   { user: 'team:backend#member_or_higher', relation: 'grants_to', object: 'tool:deploy' },
   { user: 'user:alice', relation: 'team_member', object: 'tool:ci' },
   { user: 'user:alice', relation: 'excluded', object: 'tool:deploy' },
+  ...Array.from({ length: DIAMOND_LEVELS }, (_, i) => [
+    { user: `node:${i + 1}`, relation: 'left', object: `node:${i}` },
+    { user: `node:${i + 1}`, relation: 'right', object: `node:${i}` },
+  ]).flat(),
+  { user: 'user:alice', relation: 'viewer', object: `node:${DIAMOND_LEVELS}` },
+  { user: 'user:bob', relation: 'viewer', object: 'node:6' },
+  // A cycle back into the diamond, so cut and memoized results meet.
+  { user: 'node:3', relation: 'left', object: `node:${DIAMOND_LEVELS}` },
 ]
 
 interface CheckCase { name: string; subject: string; relation: string; objectType: string; objectId: string }
@@ -132,11 +167,18 @@ const CHECK_CASES: CheckCase[] = [
   { name: 'intersection (both true)', subject: 'user:alice', relation: 'can_admin', objectType: 'tool', objectId: 'ci' },
   { name: 'intersection (one false)', subject: 'user:alice', relation: 'can_admin', objectType: 'tool', objectId: 'deploy' },
   { name: 'denial for unrelated subject', subject: 'user:bob', relation: 'member_or_higher', objectType: 'team', objectId: 'platform-eng' },
+  { name: 'diamond, grant at the bottom', subject: 'user:alice', relation: 'viewer', objectType: 'node', objectId: '0' },
+  { name: 'diamond, grant midway', subject: 'user:bob', relation: 'viewer', objectType: 'node', objectId: '2' },
+  { name: 'diamond, below the grant', subject: 'user:bob', relation: 'viewer', objectType: 'node', objectId: '9' },
+  { name: 'diamond, no grant anywhere', subject: 'user:carol', relation: 'viewer', objectType: 'node', objectId: '0' },
+  { name: 'diamond, inside the cycle', subject: 'user:bob', relation: 'viewer', objectType: 'node', objectId: String(DIAMOND_LEVELS) },
 ]
 
 const LIST_CASES: ListCase[] = [
   { name: 'list tools (can_invoke)', subject: 'user:alice', relation: 'can_invoke', objectType: 'tool' },
   { name: 'list tiers (member_or_higher)', subject: 'user:alice', relation: 'member_or_higher', objectType: 'team' },
+  { name: 'list diamond nodes (alice)', subject: 'user:alice', relation: 'viewer', objectType: 'node' },
+  { name: 'list diamond nodes (bob)', subject: 'user:bob', relation: 'viewer', objectType: 'node' },
 ]
 
 describeParity('OpenFGA memory-vs-server parity', () => {
