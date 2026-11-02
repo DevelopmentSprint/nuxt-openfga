@@ -162,6 +162,12 @@ only answers questions about the signed-in user, and ignores any subject in the
 request body. Checks run during SSR, and components asking the same question
 on one page share a single request.
 
+The endpoint enforces OpenFGA's own field limits and responds 400 to anything
+OpenFGA would reject: `relation` up to 50 characters and `objectType` up to
+254, neither containing `:`, `#`, `@` or whitespace, and `objectType:objectId`
+up to 256 characters with no whitespace. This keeps arbitrary input out of the
+shared decision cache without rejecting any id OpenFGA accepts.
+
 > **Hiding UI is not access control.** Every endpoint that returns or changes
 > protected data must still enforce the relation with `requireRelation` or
 > `checkAccessOrThrow`.
