@@ -3,7 +3,7 @@ import parserTs from '@typescript-eslint/parser'
 
 export default [
   {
-    ignores: ['dist/**', 'node_modules/**', '.nuxt/**', '.output/**', '**/.nuxt/**', '**/.output/**']
+    ignores: ['dist/**', 'node_modules/**', '.nuxt/**', '.output/**', '**/.nuxt/**', '**/.output/**', '**/node_modules/**', '**/.data/**']
   },
   js.configs.recommended,
   {

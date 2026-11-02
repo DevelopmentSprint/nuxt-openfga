@@ -13,6 +13,18 @@ updates:
     open-pull-requests-limit: 10
     labels:
       - dependencies
+  # The documentation site (docs/) has its own lockfile.
+  - package-ecosystem: npm
+    directory: /docs
+    target-branch: develop
+    schedule:
+      interval: weekly
+    cooldown:
+      default-days: 7
+    open-pull-requests-limit: 5
+    labels:
+      - dependencies
+      - documentation
   - package-ecosystem: github-actions
     directory: /
     # Git-flow: dependency updates land on develop and ship with the next release.
