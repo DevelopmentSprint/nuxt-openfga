@@ -28,8 +28,8 @@ jobs:
         run: pnpm install --frozen-lockfile
       # Minted after install so install-time lifecycle scripts never see it.
       # Scoped to this repository and two permissions; revoked when the job ends.
-      # changesets/action passes it to the `version-packages` script as
-      # GITHUB_TOKEN, so that script can read it: keep it plain
+      # changesets/action writes it to ~/.netrc before running `version`, so
+      # that command can read it: keep `version-packages` to plain
       # `changeset version`, with no installs, hooks or third-party tools.
       - name: Mint version PR token
         id: app-token
@@ -41,19 +41,15 @@ jobs:
           permission-contents: write
           permission-pull-requests: write
       - name: Create version PR
-        uses: changesets/action@ae32849d5ba541f9ae29e40e22a623bc13562f51 # v2.1.2
+        uses: changesets/action@a45c4d594aa4e2c509dc14a9f2b3b67ba3780d0d # v1.9.0
         with:
-          # v2 reads a custom token only from this input, and fails if a
-          # different GITHUB_TOKEN is set in the environment.
-          github-token: ${{ steps.app-token.outputs.token }}
-          pr-title: "chore(release): version packages"
-          commit-message: "chore(release): version packages"
-          version-script: pnpm version-packages
-          # The version commit goes through the GitHub API as the App (signed;
-          # no git push credential). This is v2's default.
-          push-with-git-cli: false
-          # Releases and tags come from the maintainer's GitHub release, which
-          # runs the publish workflow. With no publish-script the action never
-          # tags; these keep it that way if one is added.
-          create-github-releases: false
-          push-git-tags: false
+          title: "chore(release): version packages"
+          commit: "chore(release): version packages"
+          version: pnpm version-packages
+          createGithubReleases: false
+          # Commits through the GitHub API as the App: signed, and no git push
+          # credential is needed.
+          commitMode: github-api
+        env:
+          # The action reads this env var before its github-token input.
+          GITHUB_TOKEN: ${{ steps.app-token.outputs.token }}

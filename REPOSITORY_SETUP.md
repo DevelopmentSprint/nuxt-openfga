@@ -181,17 +181,12 @@ the repository-level copies, and delete that key on the App page.
 The workflow narrows each token to this repository with contents and
 pull-request write access, and the token is revoked when the job ends. It is
 minted after dependency installation, so install-time lifecycle scripts never
-see it. It is passed to changesets/action (v2) through its `github-token`
-input; v2 ignores a `GITHUB_TOKEN` environment variable, and fails if one is
-set to a different value. It is not isolated from later steps: the action
-runs the `version-packages` script with the token in its `GITHUB_TOKEN`
-environment variable, so that script can read it. Keep that script as plain
-`changeset version`, with no installs, hooks or third-party tools. The
-version commit is created through the GitHub API, so it is signed and
-attributed to the App. The action does not publish, push tags or create
-GitHub releases (`create-github-releases` and `push-git-tags` are off, and
-there is no `publish-script`); publishing remains the release flow in
-section 4.
+see it. It is not isolated from later steps: changesets/action writes it to
+`~/.netrc` before running the `version-packages` script, which can read it.
+Keep that script as plain `changeset version`, with no installs, hooks or
+third-party tools. The version commit is created through the GitHub API, so
+it is signed and attributed to the App. Changesets still does not publish or
+create GitHub releases; publishing remains the release flow in section 4.
 
 To rotate the key, generate a new private key on the App page, update the
 secret, confirm the next version PR runs its checks, then delete the old key.
