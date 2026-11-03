@@ -89,7 +89,8 @@ export default defineEventHandler({
   [contextual tuples](https://developmentsprint.github.io/nuxt-openfga/guide/contextual-tuples),
   [caching](https://developmentsprint.github.io/nuxt-openfga/guide/caching),
   [model deployment](https://developmentsprint.github.io/nuxt-openfga/guide/model-deployment),
-  [memory mode](https://developmentsprint.github.io/nuxt-openfga/guide/memory-mode)
+  [memory mode](https://developmentsprint.github.io/nuxt-openfga/guide/memory-mode),
+  [Nuxt layers](https://developmentsprint.github.io/nuxt-openfga/guide/nuxt-layers)
 - Reference: [configuration](https://developmentsprint.github.io/nuxt-openfga/reference/configuration),
   [API](https://developmentsprint.github.io/nuxt-openfga/reference/api),
   [TypeScript](https://developmentsprint.github.io/nuxt-openfga/reference/typescript)
