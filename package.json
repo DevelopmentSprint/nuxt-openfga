@@ -1,6 +1,6 @@
 {
   "name": "@developmentsprint/nuxt-openfga",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "OpenFGA authorization for Nuxt: cached server helpers, h3 route guards, a <Can> component, and an in-memory evaluator for tests.",
   "private": false,
   "type": "module",
