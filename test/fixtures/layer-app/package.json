@@ -1,0 +1,5 @@
+{
+  "name": "nuxt-openfga-layer-app",
+  "private": true,
+  "type": "module"
+}
