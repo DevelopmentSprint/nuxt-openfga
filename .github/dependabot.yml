@@ -11,6 +11,11 @@ updates:
     cooldown:
       default-days: 7
     open-pull-requests-limit: 10
+    # Changesets CLI v3 and changesets/action v2 only work together; upgrade
+    # both in one change.
+    ignore:
+      - dependency-name: "@changesets/cli"
+        update-types: ["version-update:semver-major"]
     labels:
       - dependencies
   # The documentation site (docs/) has its own lockfile.
@@ -36,5 +41,9 @@ updates:
     cooldown:
       default-days: 7
     open-pull-requests-limit: 10
+    # changesets/action v2 requires Changesets CLI v3; see the npm entry.
+    ignore:
+      - dependency-name: changesets/action
+        update-types: ["version-update:semver-major"]
     labels:
       - dependencies
