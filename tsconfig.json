@@ -9,5 +9,7 @@
     "skipLibCheck": true,
     "esModuleInterop": true
   },
-  "include": ["src/**/*.ts", "src/**/*.d.ts", "test/**/*.ts", "test/**/*.d.ts", "build.config.ts", "vitest.config.ts", "vitest.e2e.config.ts"]
+  "include": ["src/**/*.ts", "src/**/*.d.ts", "test/**/*.ts", "test/**/*.d.ts", "build.config.ts", "vitest.config.ts", "vitest.e2e.config.ts"],
+  // Nuxt apps used as test fixtures rely on auto-imports from their own .nuxt.
+  "exclude": ["test/fixtures"]
 }
